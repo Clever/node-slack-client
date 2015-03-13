@@ -91,7 +91,7 @@ slack.on 'message', (message) ->
     Just Received: #{type} #{channelName} #{userName} #{ts} "#{text}"
   """
 
-  if type is 'message' and text? and not channel.is_channel
+  if type is 'message' and text? and not channel.is_channel and userName isnt '@kudobot'
     words = text.split(' ')
     if words[0] is "set" and words.length > 2 and userName in godUsers
       holder = words[1]
