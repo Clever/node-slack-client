@@ -1,5 +1,8 @@
 https       = require 'https'
 Slack = require './'
+MemJS = require 'memjs'
+
+memjs = MemJS.Client.create()
 
 token = process.env.KUDOBOT_TOKEN # Add a bot at https://my.slack.com/services/new/bot and copy the token here.
 autoReconnect = true
@@ -22,16 +25,16 @@ awards =
   security: "Data Defender + Security"
   cleaver: "Cleaver Prize"
 
-# award => id of holder
-current_holders = 
-  "credit": jamila_id
-  "vibes": jamila_id
-  "student": jamila_id
-  "group": jamila_id
-  "classroom": jamila_id
-  "textbook": jamila_id
-  "security": jamila_id
-  "cleaver": jamila_id
+shortnames =  [
+  "credit",
+  "vibes",
+  "student",
+  "group",
+  "classroom",
+  "textbook",
+  "security",
+  "cleaver" 
+]
 
 # YES, I KNOW THAT THESE DICTIONARIES ARE NAMED BACKWARDS
 # id => username
@@ -49,6 +52,15 @@ slack.on 'open', ->
   groups = []
   users = slack.users
   unreads = slack.getUnreadCount()
+
+  memjs.set "credit", jamila_id
+  memjs.set "vibes", jamila_id
+  memjs.set "student", jamila_id
+  memjs.set "group", jamila_id
+  memjs.set "classroom", jamila_id
+  memjs.set "textbook", jamila_id
+  memjs.set "security", jamila_id
+  memjs.set "cleaver", jamila_id
 
   # Get all the channels that bot is a member of
   channels = ("##{channel.name}" for id, channel of slack.channels when channel.is_member)
@@ -115,6 +127,7 @@ slack.on 'message', (message) ->
         jam_pot_notif words, userName
         holder_notif words, userName
         team_notif award
+        good_nomination channel
 
     else
       bad_nomination channel
@@ -139,11 +152,18 @@ slack.login()
 
 set_holder = (holder, award, channel) ->
   response = "OK, set "+user_ids[holder]+" as current holder of "+awards[award]+"\n"
-  current_holders[award] = holder
+
+  memjs.set award, holder
+
   response += "current holders are: \n"
-  for awrd of current_holders
+  for awrd in shortnames
     response += "" + awrd + ": @"
-    response += user_ids[current_holders[awrd]] + "\n"
+    memjs.get awrd, (err, holder) ->
+      if holder
+        response += holder + "\n"
+      else
+        response += "error? let Potluck know you got this message\n"
+    
   channel.send response
 
 bad_set = (channel) ->
@@ -163,7 +183,12 @@ holder_notif = (words, userName) ->
   holder_msg += words[1] + " has been nominated for " + award
   holder_msg += " for " + words.slice(3).join(' ') + "\n"
 
-  holder_id = current_holders[award]
+  memjs.get award, (err, holder) ->
+  if holder
+    holder_id = holder
+  else 
+    # this is a problem
+    return
 
   slack.openDM holder_id, (value) ->
     holder_dm_id = value.channel.id
@@ -178,13 +203,23 @@ jam_pot_notif = (words, userName) ->
   jamila_dm.send jamila_msg
   potluck_dm.send jamila_msg
 
+good_nomination = (channel) ->
+  response = "Great! Your nomination has been received"
+  channel.send response
+
 bad_nomination = (channel) ->
   response = "Usage: `nominate [nominee] [award] [reason]`\n"
   response += "`nominee` should be a single word name\n"
   response += "`award` should be one of: `credit`, `vibes`, `student`, `group`, `classroom`, `textbook`, `cleaver` or `security`"
   response += "\nCurrent Award holders are: \n"
-  for awrd of current_holders
+  for awrd in shortnames
     response += "_" + awards[awrd] + "_: *@"
-    response += user_ids[current_holders[awrd]] + "*\n"
+    memjs.get awrd, (err, holder) ->
+      if holder
+        response += user_ids[holder] + "*\n"
+      else
+        response += "error? let Potluck know you got this message*\n"
+    
+
   channel.send response
 
