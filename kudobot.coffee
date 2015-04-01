@@ -1,12 +1,15 @@
 https       = require 'https'
 Slack = require './'
-MemJS = require 'memjs'
-
-memjs = MemJS.Client.create()
+ddb = require('dynamodb').ddb
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID_KUDOBOTDDB,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_KUDOBOTDB,
+  endpoint: 'dynamodb.us-west-1.amazonaws.com'
 
 token = process.env.KUDOBOT_TOKEN # Add a bot at https://my.slack.com/services/new/bot and copy the token here.
 autoReconnect = true
 autoMark = true
+
+table_name = 'kudobot'
 
 potluck_id = process.env.POTLUCK_ID
 jamila_id = process.env.JAMILA_ID
@@ -52,15 +55,6 @@ slack.on 'open', ->
   groups = []
   users = slack.users
   unreads = slack.getUnreadCount()
-
-  memjs.set "credit", jamila_id
-  memjs.set "vibes", jamila_id
-  memjs.set "student", jamila_id
-  memjs.set "group", jamila_id
-  memjs.set "classroom", jamila_id
-  memjs.set "textbook", jamila_id
-  memjs.set "security", jamila_id
-  memjs.set "cleaver", jamila_id
 
   # Get all the channels that bot is a member of
   channels = ("##{channel.name}" for id, channel of slack.channels when channel.is_member)
@@ -153,18 +147,21 @@ slack.login()
 set_holder = (holder, award, channel) ->
   response = "OK, set "+user_ids[holder]+" as current holder of "+awards[award]+"\n"
 
-  memjs.set award, holder
-
-  response += "current holders are: \n"
-  for awrd in shortnames
-    response += "" + awrd + ": @"
-    memjs.get awrd, (err, holder) ->
-      if holder
-        response += holder + "\n"
-      else
-        response += "error? let Potluck know you got this message\n"
-    
-  channel.send response
+  ddb.putItem table_name, {award: award, holder_id: holder}, {}, (err, res, cap) ->
+    if err
+      console.log err
+      channel.send "Had an issue setting this holder - try again"
+      return
+    holders = []
+    ddb.scan table_name, {}, (err, res) ->
+      if err
+        console.log err
+        channel.send "Set holder. Hit an issue grabbing current holders - send kudobot another message to confirm it was set"
+        return
+      response += "current holders are: \n"
+      for item in res.items
+        response += "#{item.award}: @#{user_ids[item.holder_id]}\n"
+      channel.send response
 
 bad_set = (channel) ->
   response = "Usage: `set [award holder] [award]`\n"
@@ -183,17 +180,17 @@ holder_notif = (words, userName) ->
   holder_msg += words[1] + " has been nominated for " + award
   holder_msg += " for " + words.slice(3).join(' ') + "\n"
 
-  memjs.get award, (err, holder) ->
-  if holder
-    holder_id = holder
-  else 
-    # this is a problem
-    return
+  ddb.getItem table_name, award, null, {}, (err, res, cap) ->
+    if err
+      console.log err
+      # TODO: send the person a response that there was an error notifying the holder
+      return
+    holder_id = res.holder_id
+    slack.openDM holder_id, (value) ->
+      holder_dm_id = value.channel.id
+      holder_dm = slack.getDMByID(holder_dm_id)
+      holder_dm.send holder_msg
 
-  slack.openDM holder_id, (value) ->
-    holder_dm_id = value.channel.id
-    holder_dm = slack.getDMByID(holder_dm_id)
-    holder_dm.send holder_msg
 
 jam_pot_notif = (words, userName) ->
   award = words[2]
@@ -212,14 +209,14 @@ bad_nomination = (channel) ->
   response += "`nominee` should be a single word name\n"
   response += "`award` should be one of: `credit`, `vibes`, `student`, `group`, `classroom`, `textbook`, `cleaver` or `security`"
   response += "\nCurrent Award holders are: \n"
-  for awrd in shortnames
-    response += "_" + awards[awrd] + "_: *@"
-    memjs.get awrd, (err, holder) ->
-      if holder
-        response += user_ids[holder] + "*\n"
-      else
-        response += "error? let Potluck know you got this message*\n"
-    
 
-  channel.send response
+  console.log table_name
+  ddb.scan table_name, {}, (err, res) ->
+    if err
+      console.log err
+      channel.send response + "error getting award holders."
+      return
+    for item in res.items
+      response += "#{awards[item.award]}: @#{user_ids[item.holder_id]}\n"
+    channel.send response
 

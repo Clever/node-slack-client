@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "coffee-script": "~1.9.0",
+    "dynamodb": "^0.3.6",
     "log": "1.4.0",
     "memjs": "^0.8.5",
     "ws": "0.4.31"
