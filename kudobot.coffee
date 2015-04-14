@@ -51,20 +51,9 @@ godUsers = ["@jam", "@p"]
 slack = new Slack(token, autoReconnect, autoMark)
 
 slack.on 'open', ->
-  channels = []
-  groups = []
   users = slack.users
-  unreads = slack.getUnreadCount()
 
-  # Get all the channels that bot is a member of
-  channels = ("##{channel.name}" for id, channel of slack.channels when channel.is_member)
   team_channel = slack.getChannelByName("#team")
-
-  # Get all groups that are open and not archived 
-  groups = (group.name for id, group of slack.groups when group.is_open and not group.is_archived)
-
-  #console.log "Yo! Welcome to Slack. You are @#{slack.self.name} of #{slack.team.name}"
-  #console.log 'You are in: ' + channels.join(', ')
 
   # get the DM id to message jamila and potluck
   slack.openDM jamila_id, (value) ->
@@ -143,7 +132,7 @@ slack.on 'error', (error) -> console.error "Error: #{error}"
 
 slack.login()
 
-
+# For Jamila/Potluck to set who is the current holder of the award
 set_holder = (holder, award, channel) ->
   response = "OK, set "+user_ids[holder]+" as current holder of "+awards[award]+"\n"
 
@@ -160,7 +149,7 @@ set_holder = (holder, award, channel) ->
         return
       response += "current holders are: \n"
       for item in res.items
-        response += "#{item.award}: @#{user_ids[item.holder_id]}\n"
+        response += "#{awards[item.award]}: @#{user_ids[item.holder_id]}\n"
       channel.send response
 
 bad_set = (channel) ->
