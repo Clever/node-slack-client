@@ -10,7 +10,6 @@ autoReconnect = true
 autoMark = true
 
 table_name = 'kudobot'
-
 potluck_id = process.env.POTLUCK_ID
 jamila_id = process.env.JAMILA_ID
 
