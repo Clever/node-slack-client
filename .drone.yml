@@ -1,7 +1,3 @@
-env:
-- npmdeployusername=$$npmdeployusername
-- npmdeploypassword=$$npmdeploypassword
-- hipchatToken=$$hipchatToken
 image: node0.10
 notify:
   email:
@@ -23,6 +19,6 @@ publish:
     - $(git rev-parse --short HEAD)
     username: $$docker_username
     when:
-      branch: master
+      branch: SANHAXISCO-30-kudobot
 script:
 - echo "pass"
