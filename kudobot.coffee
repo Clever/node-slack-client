@@ -46,7 +46,7 @@ user_ids = {}
 usernames = {}
 
 # people who can set the current kudos holder
-godUsers = ["@jam", "@p"]
+godUsers = ["@jam", "@potluck"]
 
 slack = new Slack(token, autoReconnect, autoMark)
 
@@ -199,7 +199,7 @@ bad_nomination = (channel) ->
   response += "`award` should be one of: `credit`, `vibes`, `student`, `group`, `classroom`, `textbook`, `cleaver` or `security`"
   response += "\nCurrent Award holders are: \n"
 
-  console.log table_name
+  console.log "Scanning Dynamodb table #{table_name}."
   ddb.scan table_name, {}, (err, res) ->
     if err
       console.log err
@@ -208,4 +208,5 @@ bad_nomination = (channel) ->
     for item in res.items
       response += "#{awards[item.award]}: @#{user_ids[item.holder_id]}\n"
     channel.send response
+    console.log "no error in scanning. sending response: ", response
 
