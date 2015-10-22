@@ -1,3 +1,6 @@
+# This is the file that runs kudobot. Sorry that it's not on master. I was a git noob when I created this -Potluck
+# To deploy, run fab mesos.apps.deploy:node-slack-client,env=production,version=SANHAXISCO-30-kudobot
+
 https       = require 'https'
 Slack = require './'
 ddb = require('dynamodb').ddb
