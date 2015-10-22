@@ -67,7 +67,6 @@ slack.on 'open', ->
   for user of users
     user_ids[user] = users[user]['name']
     usernames[users[user]['name']] = user
-  
 
 slack.on 'message', (message) ->
   channel = slack.getChannelGroupOrDMByID(message.channel)
@@ -110,9 +109,10 @@ slack.on 'message', (message) ->
         bad_nomination channel
       else
         jam_pot_notif words, userName
-        holder_notif words, userName
+        # holder_notif calls good_nomination to respond to the nominater
+        holder_notif words, userName, channel
         team_notif award
-        good_nomination channel
+
 
     else
       bad_nomination channel
@@ -165,7 +165,9 @@ team_notif = (award) ->
   team_msg += "You can make a nomination by DMing kudobot: `nominate [nominee] [award] [reason]`"
   team_channel.send team_msg
 
-holder_notif = (words, userName) ->
+# notifies the holder of the award that the nomination was made
+# takes in channel so that it can call good_nomination
+holder_notif = (words, userName, channel) ->
   award = words[2]
   holder_msg = "Hey! "+ userName+" made a nomination!\n"
   holder_msg += words[1] + " has been nominated for " + award
@@ -174,14 +176,19 @@ holder_notif = (words, userName) ->
   ddb.getItem table_name, award, null, {}, (err, res, cap) ->
     if err
       console.log err
-      # TODO: send the person a response that there was an error notifying the holder
+      issue_notifying_holder channel
       return
     holder_id = res.holder_id
     slack.openDM holder_id, (value) ->
       holder_dm_id = value.channel.id
       holder_dm = slack.getDMByID(holder_dm_id)
       holder_dm.send holder_msg
+      good_nomination channel, holder_id
 
+issue_notifying_holder = (channel) ->
+  msg = "Unfortunately, there was an issue notifying the holder of the kudo. Sorry! Please let Potluck know " +
+    "this happened, and either message the award holder directly, or try sending in the nomination again."
+  channel.send msg
 
 jam_pot_notif = (words, userName) ->
   award = words[2]
@@ -191,8 +198,8 @@ jam_pot_notif = (words, userName) ->
   jamila_dm.send jamila_msg
   potluck_dm.send jamila_msg
 
-good_nomination = (channel) ->
-  response = "Great! Your nomination has been received"
+good_nomination = (channel, holder_id) ->
+  response = "Great! @#{user_ids[holder_id]} has been notified of this nomination."
   channel.send response
 
 bad_nomination = (channel) ->
