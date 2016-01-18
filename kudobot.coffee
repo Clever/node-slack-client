@@ -49,7 +49,7 @@ user_ids = {}
 usernames = {}
 
 # people who can set the current kudos holder
-godUsers = ["@jam", "@potluck"]
+godUsers = ["@jam", "@potluck", "@cort"]
 
 slack = new Slack(token, autoReconnect, autoMark)
 
@@ -137,7 +137,7 @@ slack.on 'error', (error) -> console.error "Error: #{error}"
 
 slack.login()
 
-# For Jamila/Potluck to set who is the current holder of the award
+# For Jamila/Potluck/Cort to set who is the current holder of the award
 set_holder = (holder, award, channel) ->
   response = "OK, set "+user_ids[holder]+" as current holder of "+awards[award]+"\n"
 
