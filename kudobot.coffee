@@ -108,6 +108,7 @@ slack.on 'message', (message) ->
       award = words[2]
       if award[0] is '[' and award[award.length-1] is ']'
         award = award.substring(1, award.length-1)
+        words[2] = award
       if not awards[award]?
         bad_nomination channel
       else
