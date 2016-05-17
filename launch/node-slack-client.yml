@@ -1,0 +1,10 @@
+run:
+  type: docker
+env:
+  - AWS_ACCESS_KEY_ID_KUDOBOTDDB
+  - AWS_SECRET_ACCESS_KEY_KUDOBOTDB
+  - JAMILA_ID
+  - KUDOBOT_TOKEN
+  - POTLUCK_ID
+resources:
+  cpu: 0.1
