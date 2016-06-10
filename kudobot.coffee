@@ -39,7 +39,7 @@ shortnames =  [
   "classroom",
   "textbook",
   "security",
-  "cleaver" 
+  "cleaver"
 ]
 
 # YES, I KNOW THAT THESE DICTIONARIES ARE NAMED BACKWARDS
@@ -72,65 +72,70 @@ slack.on 'open', ->
     usernames[users[user]['name']] = user
 
 slack.on 'message', (message) ->
-  channel = slack.getChannelGroupOrDMByID(message.channel)
+  try
+    channel = slack.getChannelGroupOrDMByID(message.channel)
 
-  user = slack.getUserByID(message.user)
-  response = ''
+    user = slack.getUserByID(message.user)
+    response = ''
 
-  {type, ts, text} = message
+    {type, ts, text} = message
 
-  channelName = if channel?.is_channel then '#' else ''
-  channelName = channelName + if channel then channel.name else 'UNKNOWN_CHANNEL'
+    channelName = if channel?.is_channel then '#' else ''
+    channelName = channelName + if channel then channel.name else 'UNKNOWN_CHANNEL'
 
-  userName = if user?.name? then "@#{user.name}" else "UNKNOWN_USER"
-
-  console.log """
-    Just Received: #{type} #{channelName} #{userName} #{ts} "#{text}"
-  """
-
-  if type is 'message' and text? and not channel.is_channel and userName isnt '@kudobot'
-    words = text.split(' ')
-    if words[0] is "set" and words.length > 2 and userName in godUsers
-      holder = words[1]
-      award = words[2]
-
-      if holder[1] is "@"
-        # to get the raw user ID
-        holder = holder.slice(2, holder.length - 1)
-      if (user_ids[holder]?) and (awards[award]?)
-        set_holder holder, award, channel
-
-      else
-        bad_set channel
-    else if words[0] is "set"
-      bad_set channel
-    else if text.indexOf("nominate") is 0
-      award = words[2]
-      if award[0] is '[' and award[award.length-1] is ']'
-        award = award.substring(1, award.length-1)
-        words[2] = award
-      if not awards[award]?
-        bad_nomination channel
-      else
-        jam_pot_notif words, userName
-        # holder_notif calls good_nomination to respond to the nominater
-        holder_notif words, userName, channel
-        team_notif award
-
-
-    else
-      bad_nomination channel
- 
-  else
-    typeError = if type isnt 'message' then "unexpected type #{type}." else null
-    textError = if not text? then 'text was undefined.' else null
-    channelError = if not channel? then 'channel was undefined.' else null
-
-    errors = [typeError, textError, channelError].filter((element) -> element isnt null).join ' '
+    userName = if user?.name? then "@#{user.name}" else "UNKNOWN_USER"
 
     console.log """
-      @#{slack.self.name} could not respond. #{errors}
+      Just Received: #{type} #{channelName} #{userName} #{ts} "#{text}"
     """
+
+    if type is 'message' and text? and not channel.is_channel and userName isnt '@kudobot'
+      words = text.split(' ')
+      if words[0] is "set" and words.length > 2 and userName in godUsers
+        holder = words[1]
+        award = words[2]
+
+        if holder[1] is "@"
+          # to get the raw user ID
+          holder = holder.slice(2, holder.length - 1)
+        if (user_ids[holder]?) and (awards[award]?)
+          set_holder holder, award, channel
+
+        else
+          bad_set channel
+      else if words[0] is "set"
+        bad_set channel
+      else if text.indexOf("nominate") is 0
+        award = words[2]
+        if award[0] is '[' and award[award.length-1] is ']'
+          award = award.substring(1, award.length-1)
+          words[2] = award
+        if not awards[award]?
+          bad_nomination channel
+        else
+          jam_pot_notif words, userName
+          # holder_notif calls good_nomination to respond to the nominater
+          holder_notif words, userName, channel
+          team_notif award
+
+
+      else
+        bad_nomination channel
+
+    else
+      typeError = if type isnt 'message' then "unexpected type #{type}." else null
+      textError = if not text? then 'text was undefined.' else null
+      undefChannelError = if not channel? then 'channel was undefined.' else null
+      channelError = if channel?.is_channel then 'post in public channel' else null
+      kudobotCase = if userName is "@kudobot" then 'Kudobot posted the message' else null
+
+      errors = [typeError, textError, undefChannelError, channelError, kudobotCase].filter((element) -> element isnt null).join ' '
+
+      console.error """
+        @#{slack.self.name} could not respond. #{errors}
+      """
+  catch error
+    console.error "Error: #{error}"
 
 
 slack.on 'error', (error) -> console.error "Error: #{error}"
