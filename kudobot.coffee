@@ -91,7 +91,10 @@ slack.on 'message', (message) ->
 
     if type is 'message' and text? and not channel.is_channel and userName isnt '@kudobot'
       words = text.split(' ')
-      if words[0] is "set" and words.length > 2 and userName in godUsers
+      if words[0] is "set" and words.length > 2
+        if userName not in godUsers
+          bad_set_permissions channel
+          return
         holder = words[1]
         award = words[2]
 
@@ -162,6 +165,10 @@ set_holder = (holder, award, channel) ->
       for item in res.items
         response += "#{awards[item.award]}: @#{user_ids[item.holder_id]}\n"
       channel.send response
+
+bad_set_permissions = (channel) ->
+  response = "You don't have sufficient permissions to use `set` - please send #oncall-ip a message if you believe this is an error.\n"
+  channel.send response
 
 bad_set = (channel) ->
   response = "Usage: `set [award holder] [award]`\n"
