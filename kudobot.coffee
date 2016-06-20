@@ -135,7 +135,7 @@ slack.on 'message', (message) ->
         @#{slack.self.name} could not respond. #{errors}
       """
   catch error
-    console.error "Error: #{error}"
+    console.error "Error: #{error.stack}"
 
 
 slack.on 'error', (error) -> console.error "Error: #{error}"
