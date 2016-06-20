@@ -91,7 +91,10 @@ slack.on 'message', (message) ->
 
     if type is 'message' and text? and not channel.is_channel and userName isnt '@kudobot'
       words = text.split(' ')
-      if words[0] is "set" and words.length > 2 and userName in godUsers
+      if words[0] is "set" and words.length > 2
+        if userName not in godUsers
+          bad_set_permissions channel
+          return
         holder = words[1]
         award = words[2]
 
@@ -105,7 +108,7 @@ slack.on 'message', (message) ->
           bad_set channel
       else if words[0] is "set"
         bad_set channel
-      else if text.indexOf("nominate") is 0
+      else if text.indexOf("nominate") is 0 and words.length >= 4
         award = words[2]
         if award[0] is '[' and award[award.length-1] is ']'
           award = award.substring(1, award.length-1)
@@ -135,7 +138,7 @@ slack.on 'message', (message) ->
         @#{slack.self.name} could not respond. #{errors}
       """
   catch error
-    console.error "Error: #{error}"
+    console.error "Error: #{error.stack}"
 
 
 slack.on 'error', (error) -> console.error "Error: #{error}"
@@ -162,6 +165,10 @@ set_holder = (holder, award, channel) ->
       for item in res.items
         response += "#{awards[item.award]}: @#{user_ids[item.holder_id]}\n"
       channel.send response
+
+bad_set_permissions = (channel) ->
+  response = "You don't have sufficient permissions to use `set` - please send #oncall-ip a message if you believe this is an error.\n"
+  channel.send response
 
 bad_set = (channel) ->
   response = "Usage: `set [award holder] [award]`\n"
@@ -214,8 +221,9 @@ good_nomination = (channel, holder_id) ->
 bad_nomination = (channel) ->
   response = "Usage: `nominate [nominee] [award] [reason]`\n"
   response += "`nominee` should be a single word name\n"
-  response += "`award` should be one of: `credit`, `vibes`, `student`, `group`, `classroom`, `textbook`, `cleaver` or `security`"
-  response += "\nCurrent Award holders are: \n"
+  response += "`award` should be one of: `credit`, `vibes`, `student`, `group`, `classroom`, `textbook`, `cleaver` or `security`\n"
+  response += "`reason` should be a non-empty description\n"
+  response += "Current Award holders are: \n"
 
   console.log "Scanning Dynamodb table #{table_name}."
   ddb.scan table_name, {}, (err, res) ->
