@@ -8,3 +8,4 @@ env:
   - POTLUCK_ID
 resources:
   cpu: 0.1
+team: eng-ip
